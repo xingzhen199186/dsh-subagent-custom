@@ -137,6 +137,13 @@
   back to absolute `raw.githubusercontent` URLs — the convention this project
   adopted on 2026-09-30 for exactly this reason: `docs/` is not in the tarball,
   so relative paths render as four broken images on the npm page.
+- **The install steps describe the app that exists, and name a real profile.**
+  The old text sent people looking for an 「安装本地包」 button and a tarball
+  upload; the plugin page actually offers 「添加插件」, whose single field takes a
+  package name, a GitHub repository URL or a local directory path, with npm as
+  the install source. Installing from the registry is the recommended path now,
+  the command-line line names `web` instead of a placeholder, and the local build
+  is the third option, kept for people changing the source.
 
 ### 2026-10-12
 
