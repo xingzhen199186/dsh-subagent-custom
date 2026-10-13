@@ -1,6 +1,6 @@
 {
   "name": "dsh-subagent-custom",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Subagent model control for DeepSeek Harness: pick a subagent model by hand per session, or let Jev assign one per task — both enforced on the subagent's own request.",
   "license": "MIT",
   "repository": {
