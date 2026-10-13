@@ -1,7 +1,7 @@
 <div align="center">
 
-<!-- 项目 Logo 占位 -->
-<img src="docs/images/logo.png" alt="dsh-subagent-custom Logo" width="120" height="120" onerror="this.style.display='none'" />
+<!-- 项目 Logo -->
+<img src="docs/logo.png" alt="dsh-subagent-custom Logo" width="120" height="120" />
 
 # dsh-subagent-custom
 ### DeepSeek Harness 子代理模型管控与 Jev 智能分流插件

@@ -125,6 +125,12 @@
   when that session's selector is on `auto`. `manual` deliberately injects
   nothing — pairing a hand-picked model with a role it is not playing is worse
   than silence. Written by the `writer` role, which is this mechanism in use.
+- **The README has a logo.** Generated for this plugin rather than borrowed: one
+  path splitting into five branches with a single branch lit — the plugin's job
+  in one picture. It ships as a 256×256 PNG (`docs/logo.png`), its corners made
+  transparent so the tile keeps its rounded silhouette on GitHub's light and dark
+  themes alike. The header's `onerror` hiding trick and the `docs/images/` path
+  it pointed at — a directory that never existed — are gone.
 
 ### 2026-10-12
 
