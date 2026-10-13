@@ -145,6 +145,11 @@
   the install source. Installing from the registry is the recommended path now,
   the command-line line names `web` instead of a placeholder, and the local build
   is the third option, kept for people changing the source.
+- **The header's version badge follows npm, and the pack filename is not
+  hardcoded.** A static `version-0.1.0` badge cannot survive a release without
+  being edited, so it is npm's own badge now and reports whatever the registry
+  serves. The quick-start text names the tarball as
+  `dsh-subagent-custom-<版本号>.tgz` for the same reason.
 
 ### 2026-10-12
 

@@ -13,7 +13,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg?style=flat-square" alt="Node.js Version">
-  <img src="https://img.shields.io/badge/version-0.1.0-orange.svg?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/npm/v/dsh-subagent-custom?style=flat-square" alt="npm Version">
   <img src="https://img.shields.io/badge/tests-97%20passed-success.svg?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome">
   <img src="https://img.shields.io/badge/status-active%20development-informational.svg?style=flat-square" alt="Status">
@@ -119,7 +119,7 @@ dsh plugin --profile web add dsh-subagent-custom
    ```bash
    pnpm pack
    ```
-   执行完成后在项目根目录生成 `dsh-subagent-custom-0.1.0.tgz`。
+   执行完成后在项目根目录生成 `dsh-subagent-custom-<版本号>.tgz`。
 
 3. **安装这一份本地包**：回到桌面端「添加插件」，填入该 `.tgz` 文件（或项目目录）的完整路径，点击「安装」；命令行管理的配置档则用 `dsh plugin --profile web add <该路径>`。
 
