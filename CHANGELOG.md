@@ -117,7 +117,8 @@
   the provider preset, the decision profile and all five roles with their models
   and prompts. Its caption now names what the picture contains rather than the
   questionnaire, which this crop does not reach. Checked before publishing: the
-  card's key field is not in the frame.
+  card's key field is not in the frame. The unreferenced `docs/settings-routes.png`
+  was dropped in the same change.
 
 ### 2026-10-12
 
