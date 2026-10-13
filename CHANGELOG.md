@@ -130,7 +130,8 @@
   in one picture. It ships as a 256×256 PNG (`docs/logo.png`), its corners made
   transparent so the tile keeps its rounded silhouette on GitHub's light and dark
   themes alike. The header's `onerror` hiding trick and the `docs/images/` path
-  it pointed at — a directory that never existed — are gone.
+  it pointed at — a directory that never existed — are gone, and the preview
+  note no longer calls the logo a placeholder.
 - **The README stopped claiming the package is not on npm.** It was published to
   the registry today, so the install section now offers the registry command
   first and keeps the local build as the alternative path. The four images moved

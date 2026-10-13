@@ -70,7 +70,7 @@
 | ![输入框模式切换器](https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/preview-picker.png) | ![子代理模型边栏标签页](https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/preview-sidebar.png) | ![插件设置卡片](https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/settings-card.png) |
 | *位于主模型选择器右侧：继承主模型、交给 Jev 自动分配，或从列表中手动指定模型* | *当前会话状态、每个角色跑在哪个模型上，以及最近派发流水* | *提供商预设、决策档位，以及每个角色所用的模型与前置提示词* |
 
-> 💡 *注：三张均为实际界面截图（桌面端）。顶部 Logo 仍是占位。*
+> 💡 *注：三张均为实际界面截图（桌面端）。*
 
 ---
 
