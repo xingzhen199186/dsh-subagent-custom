@@ -131,6 +131,12 @@
   transparent so the tile keeps its rounded silhouette on GitHub's light and dark
   themes alike. The header's `onerror` hiding trick and the `docs/images/` path
   it pointed at — a directory that never existed — are gone.
+- **The README stopped claiming the package is not on npm.** It was published to
+  the registry today, so the install section now offers the registry command
+  first and keeps the local build as the alternative path. The four images moved
+  back to absolute `raw.githubusercontent` URLs — the convention this project
+  adopted on 2026-09-30 for exactly this reason: `docs/` is not in the tarball,
+  so relative paths render as four broken images on the npm page.
 
 ### 2026-10-12
 

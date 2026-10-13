@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- 项目 Logo -->
-<img src="docs/logo.png" alt="dsh-subagent-custom Logo" width="120" height="120" />
+<img src="https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/logo.png" alt="dsh-subagent-custom Logo" width="120" height="120" />
 
 # dsh-subagent-custom
 ### DeepSeek Harness 子代理模型管控与 Jev 智能分流插件
@@ -67,7 +67,7 @@
 
 | 输入框模式切换器 | 「子代理模型」边栏标签页 | 插件可视化设置卡片 |
 | :---: | :---: | :---: |
-| ![输入框模式切换器](docs/preview-picker.png) | ![子代理模型边栏标签页](docs/preview-sidebar.png) | ![插件设置卡片](docs/settings-card.png) |
+| ![输入框模式切换器](https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/preview-picker.png) | ![子代理模型边栏标签页](https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/preview-sidebar.png) | ![插件设置卡片](https://raw.githubusercontent.com/xingzhen199186/dsh-subagent-custom/main/docs/settings-card.png) |
 | *位于主模型选择器右侧：继承主模型、交给 Jev 自动分配，或从列表中手动指定模型* | *当前会话状态、每个角色跑在哪个模型上，以及最近派发流水* | *提供商预设、决策档位，以及每个角色所用的模型与前置提示词* |
 
 > 💡 *注：三张均为实际界面截图（桌面端）。顶部 Logo 仍是占位。*
@@ -88,7 +88,15 @@
 
 ### 安装与加载步骤
 
-本项目当前未发布至 npm 官方注册表，请以本地打包或源码引用形式安装：
+本项目已发布至 npm 官方注册表，两种方式任选其一。
+
+**甲：从 npm 安装**（适用于命令行管理的配置档）：
+
+```bash
+dsh plugin --profile <配置档名> add dsh-subagent-custom
+```
+
+**乙：从源码本地打包**（适用于桌面端配置档，或你想改动源码时）：
 
 1. **获取源码并编译客户端资源**：
    ```bash
