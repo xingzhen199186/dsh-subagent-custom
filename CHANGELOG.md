@@ -90,6 +90,18 @@
   `dsh-jev-subagent-dispatch` — pointing at a package that is no longer
   installed, and carrying a mangled `endpoint` from some earlier edit — can be
   deleted.
+- **The preview table shows a real screenshot, and no longer points at files
+  that never existed.** The settings-card image (`docs/settings-card.png`) is
+  wired in; the two cells without a screenshot say so in words instead of
+  rendering two broken images on a public page. `docs/settings-routes.png` is
+  committed but unreferenced, and the logo stays a placeholder — its `onerror`
+  keeps it invisible.
+- **The project is published: https://github.com/xingzhen199186/dsh-subagent-custom.**
+  First commit `22dcbaf`, 39 files. `.gitignore` keeps the build output (`lib/`,
+  `*.tgz`) and the local-development leftovers out of the repository, and
+  `.gitattributes` fixes line endings to LF so a clone on any platform matches.
+  The first release carries the packed tarball, since a package that ships from
+  a tarball is not installable from source without a build step.
 
 ### 2026-10-12
 
