@@ -107,6 +107,12 @@
   plans and a contribution workflow the project does not run; the provenance
   section keeps what it exists for — the two upstream projects and their MIT
   notices.
+- **The preview table's last two placeholders are real screenshots now.** The
+  picker popover and the 「子代理模型」 sidebar tab were captured from the running
+  desktop app. The two captions were reworded to describe what the pictures
+  actually show — the old ones promised a title-bar badge that neither picture
+  contains — and a clipped edge of the picker shot was trimmed off. The logo
+  remains the only placeholder.
 
 ### 2026-10-12
 
