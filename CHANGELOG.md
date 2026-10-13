@@ -119,6 +119,12 @@
   questionnaire, which this crop does not reach. Checked before publishing: the
   card's key field is not in the frame. The unreferenced `docs/settings-routes.png`
   was dropped in the same change.
+- **The README documents the role prompts.** Until now the mechanism was
+  reachable only from the source: a role may carry a `prompt`, injected as a
+  message ahead of the subagent's own task, on its first step only, and only
+  when that session's selector is on `auto`. `manual` deliberately injects
+  nothing — pairing a hand-picked model with a role it is not playing is worse
+  than silence. Written by the `writer` role, which is this mechanism in use.
 
 ### 2026-10-12
 
