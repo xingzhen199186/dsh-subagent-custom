@@ -93,7 +93,7 @@
 **甲：从 npm 安装**（适用于命令行管理的配置档）：
 
 ```bash
-dsh plugin --profile <配置档名> add dsh-subagent-custom
+dsh plugin --profile web add dsh-subagent-custom
 ```
 
 **乙：从源码本地打包**（适用于桌面端配置档，或你想改动源码时）：
