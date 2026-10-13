@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+*.log
+
+# 构建产物：由 `pnpm pack` 的 prepack 重新生成，不进版本库
+lib/
+*.tgz
+*.tgz.bak-*
+
+# 本机开发约定（含本机路径，或与发布无关）
+tasks/
+subagents/
+DELIVERY-EVIDENCE.md
+session.v4.jsonl
+dsh-session-*.zip
+smoke
+smoke-*

@@ -1,0 +1,87 @@
+{
+  "name": "dsh-subagent-custom",
+  "version": "0.1.0",
+  "description": "Subagent model control for DeepSeek Harness: pick a subagent model by hand per session, or let Jev assign one per task — both enforced on the subagent's own request.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xingzhen199186/dsh-subagent-custom.git"
+  },
+  "homepage": "https://github.com/xingzhen199186/dsh-subagent-custom#readme",
+  "bugs": {
+    "url": "https://github.com/xingzhen199186/dsh-subagent-custom/issues"
+  },
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "config.mjs",
+    "capabilities.mjs",
+    "jev.mjs",
+    "verdict.mjs",
+    "replay.mjs",
+    "bin/jev-replay.mjs",
+    "src/shared/config.mjs",
+    "src/host/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build-client.mjs",
+    "prepack": "node scripts/build-client.mjs",
+    "check": "node scripts/check.mjs && node scripts/check-locales.mjs && tsc --noEmit",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "check-locales": "node scripts/check-locales.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "subagent",
+    "routing",
+    "jev"
+  ],
+  "bin": {
+    "jev-replay": "bin/jev-replay.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": ">=3.18.1",
+    "@deepseek-ai/dsh-llm": "^0.2.0-rc.2 || >=0.1.0-rc.6 <0.2.0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.1.7-rc.2 <0.3.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "@types/react": "^18.3.31",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,565 @@
+/**
+ * `dsh-subagent-custom` — configuration resolution.
+ *
+ * The single configuration source is the plugin row's `config` (the bundle
+ * patch ships defaults; the user's profile patch overrides the same row by
+ * id). On DSH 0.1.7+ an edit through the Plugins row page or the profile patch
+ * reaches the live listener without a restart, because the row's volatile
+ * `Config` fields are handed to `apply` as live accessors and re-read every
+ * turn; on 0.1.5 the settings bridge supplies the same freshness.
+ *
+ * The `questions` map mirrors TypeSafe's documented request shape exactly
+ * (map keyed by question id; each entry carries `type`, `instructions`,
+ * `criteria`) so what is configured is what goes on the wire — no
+ * transformation step to drift. Merging is per question id: overriding one
+ * question replaces that whole entry, the others keep their defaults.
+ *
+ * @module dsh-subagent-custom/config
+ */
+
+import { PROVIDER_PRESETS } from "./src/shared/config.mjs";
+
+export const PLUGIN_NAME = "subagent-custom";
+export const PLUGIN_SOURCE_KIND = `plugin:${PLUGIN_NAME}`;
+
+/** Deep-merge plain objects; arrays, maps keyed by id, and scalars replace. */
+export function mergeDefaults(defaults, input) {
+  if (input === undefined || input === null) return structuredClone(defaults);
+  if (typeof defaults !== "object" || defaults === null || Array.isArray(defaults)
+    || typeof input !== "object" || input === null || Array.isArray(input)) {
+    return input;
+  }
+  const out = { ...defaults };
+  for (const [key, value] of Object.entries(input)) {
+    out[key] = key in defaults ? mergeDefaults(defaults[key], value) : value;
+  }
+  return out;
+}
+
+/** Merge a defaults map and an input map one level deep, by key. */
+function mergeMaps(defaultsMap, inputMap) {
+  return { ...structuredClone(defaultsMap ?? {}), ...(inputMap ?? {}) };
+}
+
+/**
+ * The rubric in TypeSafe's documented request format. Choice `criteria` is a
+ * map of option name → description; Score `criteria` is an ordered array of
+ * level descriptions (positions 0..n, the score may land between two);
+ * Noul takes optional `criteria: { true, false }`.
+ */
+export const DEFAULT_QUESTIONS = {
+  task_class: {
+    type: "choice",
+    instructions: "Which class does this coding task fall into?",
+    criteria: {
+      mechanical:
+        "Rename, reformat, boilerplate, comments or docstrings — mechanical edits with an unambiguous spec.",
+      bugfix:
+        "Fix a failing thing whose cause is understood; the fix itself is contained.",
+      feature_work:
+        "Add behavior that changes what the product does.",
+      refactor:
+        "Restructure code without changing behavior; design decisions involved.",
+      research:
+        "Gather facts, read code, compare options; change nothing.",
+      review:
+        "Judge work that already exists — a change set, a diff, a plan — for defects, and report rather than fix.",
+      documentation:
+        "Write or rewrite the prose that explains the work — a README, release notes, a changelog, user-facing docs — from the code and existing material, changing nothing else.",
+      meta_chat:
+        "Conversation, questions, or planning; no code task in this turn.",
+    },
+  },
+  effort: {
+    type: "score",
+    instructions: "How much work is this task?",
+    criteria: [
+      "S — one file, minutes of work",
+      "M — a few files, contained; an hour or two",
+      "L — many files or a full day of work",
+      "XL — multiple days, cross-cutting design work",
+    ],
+  },
+  blast_radius: {
+    type: "score",
+    instructions:
+      "If this task is done wrong, what is the worst credible consequence?",
+    criteria: [
+      "trivial — nothing of consequence can break",
+      "module — one internal module misbehaves",
+      "cross_module — several internal modules misbehave",
+      "public_api — published interfaces, schemas, or user-visible behavior break",
+      "infra — build, CI, credentials, data, or production systems break",
+    ],
+  },
+  needs_repo_context: {
+    type: "noul",
+    instructions:
+      "Doing this task well requires reading and reconciling several modules of this repository, not just the named files.",
+  },
+  user_explicit: {
+    type: "noul",
+    instructions:
+      "The user explicitly asked the main agent to do this task itself or to plan first, rather than just get it done.",
+    criteria: {
+      true:
+        "The user addressed the main agent directly: “you do it”, “plan first”, “stay in this session”.",
+      false:
+        "The user just wants the outcome; who does the work is unspecified.",
+    },
+  },
+  risky: {
+    type: "noul",
+    instructions:
+      "The task touches secrets, credentials, data migrations, infrastructure, or destructive operations.",
+    criteria: {
+      true:
+        "Credentials, production data, migrations, deploy scripts, or irreversible operations are in play.",
+      false:
+        "Ordinary code changes only.",
+    },
+  },
+};
+
+/**
+ * Rubric level names for a question, in order: for score questions the part
+ * of each criteria entry before the " — " description separator; for choice
+ * questions the criteria keys; noul has no levels.
+ * (string names, or structured objects — object levels are addressed by their numeric index)
+ * @param question - a configured question definition.
+ * @returns the ordered level names (empty for noul).
+ */
+export function criteriaLevelNames(question) {
+  if (!question || question.type === "noul") return [];
+  if (question.type === "choice") return Object.keys(question.criteria ?? {});
+  return (Array.isArray(question.criteria) ? question.criteria : [])
+    .map((entry, index) => (
+      typeof entry === "string" ? entry.split(" — ")[0].trim() : String(index)
+    ));
+}
+
+/**
+ * The delegation tools DSH composes by default, and the subagent provider
+ * behind each. A preset that configures a custom `toolName` (the harness
+ * permits it) must override this list, or the capability check cannot see
+ * the working tool.
+ */
+export const DEFAULT_DELEGATION_TOOLS = [
+  { toolName: "subagent", provider: "spawn" },
+  { toolName: "subagent_fork", provider: "fork" },
+];
+
+export const DEFAULT_PROFILES = {
+  auto: {
+    confidenceMin: 0.7,
+    delegate: {
+      taskClass: ["mechanical", "bugfix", "research", "review", "documentation"],
+      effortMax: 1.5,
+      blastRadiusMax: 1.5,
+      maxNoul: { needs_repo_context: 0.5, user_explicit: 0.3, risky: 0.2 },
+      // Cap the PROBABILITY of a severe outcome, not only the average score:
+      // a low average blast radius can still carry a meaningful chance of an
+      // infra-level result. Jev supplies per-level probabilities for score
+      // answers; this map is questionId → { levelName: maxProbability }.
+      probabilityMax: {},
+    },
+  },
+  careful: {
+    confidenceMin: 0.85,
+    delegate: {
+      taskClass: ["mechanical"],
+      effortMax: 0.5,
+      blastRadiusMax: 0.5,
+      maxNoul: { needs_repo_context: 0.2, user_explicit: 0.1, risky: 0.05 },
+    },
+  },
+};
+
+/**
+ * Named routes: role → the subagent model that should take it.
+ *
+ * Five roles. `junior` and `implementer` are separate because the `mechanical`
+ * and `bugfix` task classes are delegated together but are not the same job: a
+ * rename or a reformat has an unambiguous spec, while a bug fix has to find the
+ * cause first. Sharing one model meant paying the bug-fix price for renames.
+ * `refactor`, `feature_work` and `meta_chat` are deliberately absent from
+ * `profiles.*.delegate.taskClass`, so they never reach a route at all — they stay
+ * with the main agent.
+ *
+ * Roles name the worker, not the work: the class is `mechanical`, the role that
+ * takes it is `junior` — well-specified jobs, no diagnosis, so it is the one to
+ * point at whatever your cheapest model is. `junior` and `researcher` ship on the
+ * same model id; they are separate keys so a profile can move each independently,
+ * which the configuration card makes a two-click change.
+ *
+ * `reviewer` is a role like any other, and it ships on the same example gateway
+ * as the rest: which models exist is your composition's business, not this
+ * plugin's. The one thing the role asks of you is that you point it at a
+ * *different* model than your implementer — a second opinion from the model that
+ * wrote the change, or from its twin, is worth less — and the card offers every
+ * model your Subagent allowlist permits, so that is one select. A route that is
+ * not composed fails loudly in the recommendation, naming the role.
+ *
+ * `writer` takes the `documentation` class — a README, release notes, a
+ * changelog: prose written for a reader rather than for a compiler. It ships on
+ * the same example gateway as the rest. Of every role here it is the one whose
+ * output no test can check, so it is also the one worth pointing at the model
+ * that writes best rather than the cheapest, and the one worth giving a `prompt`
+ * that says which documents it owns and where they live.
+ */
+export const DEFAULT_ROUTES = {
+  junior: { provider: "openrouter", model: "qwen3.8-flash" },
+  implementer: { provider: "openrouter", model: "deepseek-v4-flash" },
+  researcher: { provider: "openrouter", model: "qwen3.8-flash" },
+  reviewer: { provider: "openrouter", model: "qwen3.8-flash" },
+  writer: { provider: "openrouter", model: "qwen3.8-flash" },
+};
+
+/** Credential-shaped strings never leave the machine (or reach the log). */
+export const BUILT_IN_REDACT_PATTERNS = [
+  String.raw`\bsk-[A-Za-z0-9_-]{16,}\b`,
+  String.raw`\bpk_(?:live|test)_[A-Za-z0-9_-]{16,}\b`,
+  String.raw`\bghp_[A-Za-z0-9]{20,}\b`,
+  String.raw`\bgithub_pat_[A-Za-z0-9_]{20,}\b`,
+  String.raw`\bAKIA[0-9A-Z]{16}\b`,
+  String.raw`\bBearer\s+[A-Za-z0-9._-]{10,}`,
+  String.raw`\b(?:api[_-]?key|apikey|token|secret|password|passwd|pwd)\s*[=:]\s*\S+`,
+  String.raw`\b(?=[A-Za-z0-9+/_-]{40,})(?=[A-Za-z0-9+/_-]*[0-9])(?=[A-Za-z0-9+/_-]*[A-Za-z])[A-Za-z0-9+/_-]+(?:={0,2})\b`,
+];
+
+/**
+ * Where Jev access comes from. The key's issuer determines the endpoint,
+ * the API path, the credential variable, and the pinned model id. One
+ * shared question format and routing policy sits on top; the provider
+ * preset only swaps the wire address and model. Explicit `endpoint`,
+ * `apiPath`, `apiKeyEnv`, and `model` values in the row config override the
+ * preset.
+ *
+ * Re-exported from the shared vocabulary rather than kept as a second copy:
+ * the browser card writes these same fields, and two tables that describe one
+ * wire address drift apart silently — the openrouter entry had already been
+ * spelled two different ways, and only the fact that `endpoint` + `apiPath`
+ * concatenate to the same URL kept the drift from showing up as a bug.
+ */
+export { PROVIDER_PRESETS };
+
+export function defaults() {
+  return {
+    // Activation model. `off` (default) registers nothing — the plugin is
+    // inert. `once` registers the pre-step listener but classifies ONLY
+    // turns that explicitly ask for it (a `/route` / `/jev` trigger): one
+    // call per request, predictable cost and data sharing. `auto`
+    // classifies every plain user turn — enable it only when the verdict
+    // log has earned it.
+    mode: "off",
+    provider: "typesafe",
+    endpoint: "https://api.typesafe.ai",
+    apiPath: "/v1/systemone",
+    apiKeyEnv: "TYPESAFE_API_KEY",
+    model: "jev-1.13.0",
+    // Measured against api.b.ai/v1/decisions (jev-1.13.0): a live decision took
+    // 1517 ms, so the old 900 ms budget could only ever expire. The turn still
+    // proceeds unrouted on expiry, which is exactly why a too-small default was
+    // invisible: every real classification abandoned itself.
+    timeoutMs: 4000,
+    stateChars: 1200,
+    mock: false,
+    questions: structuredClone(DEFAULT_QUESTIONS),
+    activeProfile: "auto",
+    profiles: structuredClone(DEFAULT_PROFILES),
+    routeFor: { mechanical: "junior", bugfix: "implementer", research: "researcher", review: "reviewer", documentation: "writer" },
+    defaultRoute: "implementer",
+    routes: structuredClone(DEFAULT_ROUTES),
+    // Turn triggers for `once` mode (and preview requests in `auto`).
+    triggers: ["/route", "/jev"],
+    skipSubagentSessions: true,
+    // Opt-in observability: null or "" turns logging OFF. When enabled, the
+    // user's turn text is still excluded unless logTurnText is true.
+    logDir: null,
+    logTurnText: false,
+  delegationTools: structuredClone(DEFAULT_DELEGATION_TOOLS),
+    redactPatterns: [],
+    includeFallbackLine: true,
+    // Per-session composer state, keyed by root session id. The browser
+    // selector writes it through the settings service; the host reads it back
+    // to decide which model a subagent's request runs on, and writes the route
+    // Jev assigned so the selector can display it.
+    selections: {},
+    // What each root session actually dispatched, newest first: the host appends
+    // one entry per subagent request, capped per session.
+    dispatches: {},
+    // Preset classes this configuration has already been given. See
+    // `planAdoption`: the marker is what lets a class be adopted once on upgrade
+    // and then still be removable, which a merge rule alone cannot express.
+    adoptedClasses: [],
+  };
+}
+
+/**
+ * The preset classes a stored configuration has never been given.
+ *
+ * A class only ever delegates when the ACTIVE decision profile's
+ * `delegate.taskClass` lists it, and Jev can only answer a class the
+ * questionnaire describes. Both fields REPLACE their shipped counterparts
+ * instead of merging into them, so a configuration edited before a class
+ * existed shadows it forever: it is drawn by the card, `routeFor` even maps it,
+ * and nothing can ever dispatch it. `review` shipped that way, and
+ * `documentation` after it.
+ *
+ * Detection cannot tell "never seen" from "deliberately dropped" — the stored
+ * config looks identical either way. So an adoption is recorded in
+ * `adoptedClasses` and never repeated: adopt once, and a later removal by the
+ * user sticks. That is the whole reason this is a plan the caller stores,
+ * rather than a merge rule this module applies by itself.
+ *
+ * Pure and side-effect free: it returns what to write, and writes nothing.
+ *
+ * @param current - the resolved row configuration (what the plugin is running).
+ * @param shipped - the shipped defaults, i.e. `resolveConfig({})`.
+ * @param adopted - class names already adopted into this configuration.
+ * @returns `{ criteria, allowLists, adopted }` to store — `criteria` is null
+ *   when the questionnaire learned nothing — or null when the configuration
+ *   already has every class the preset ships.
+ */
+export function planAdoption(current = {}, shipped = defaults(), adopted = []) {
+  const seen = new Set(Array.isArray(adopted) ? adopted : []);
+  const shippedCriteria = shipped.questions?.task_class?.criteria ?? {};
+
+  // Only a QUESTIONNAIRE of its own can be missing an entry. An absent or empty
+  // `criteria` map means the shipped rubric is already in force — the defaults
+  // simply were not materialized — and writing one then would pin a whole
+  // rubric on a guess.
+  const storedCriteria = current.questions?.task_class?.criteria;
+  const criteriaPinned = storedCriteria !== null && typeof storedCriteria === "object" && Object.keys(storedCriteria).length > 0;
+
+  const criteria = criteriaPinned ? { ...storedCriteria } : null;
+  const gained = [];
+  const learned = [];
+  for (const [name, wording] of criteriaPinned ? Object.entries(shippedCriteria) : []) {
+    // The user's own wording wins; only a class they have never seen is added.
+    if (name in storedCriteria || seen.has(name)) continue;
+    criteria[name] = wording;
+    gained.push(name);
+    learned.push(name);
+  }
+
+  // Only a STORED list can be missing an entry. A profile nobody has pinned
+  // resolves to the shipped list already, so it is left alone — and stays
+  // inherited rather than being written into the configuration.
+  const allowLists = {};
+  const storedProfiles = current.profiles ?? {};
+  for (const [id, profile] of Object.entries(shipped.profiles ?? {})) {
+    const stored = storedProfiles?.[id]?.delegate?.taskClass;
+    if (!Array.isArray(stored)) continue;
+    const missing = (profile?.delegate?.taskClass ?? []).filter((name) => !stored.includes(name) && !seen.has(name));
+    if (missing.length === 0) continue;
+    allowLists[id] = [...stored, ...missing];
+    gained.push(...missing);
+  }
+
+  if (gained.length === 0) return null;
+  // `criteria` stays null when the questionnaire learned nothing, so a caller
+  // never pins a whole rubric just to leave it identical.
+  return { criteria: learned.length > 0 ? criteria : null, allowLists, adopted: [...new Set([...seen, ...gained])] };
+}
+
+const QUESTION_TYPES = new Set(["choice", "score", "noul"]);
+const ID_PATTERN = /^[a-z][a-z0-9_]*$/i;
+
+function validCriteriaEntry(entry) {
+  return typeof entry === "string"
+    || (typeof entry === "object" && entry !== null && !Array.isArray(entry));
+}
+
+/**
+ * Validate the merged configuration. Throws with a human message on the
+ * first structural problem; a broken config must fail loudly at
+ * composition, not silently mis-route turns.
+ * @param config - merged configuration object.
+ * @returns the same object, validated.
+ */
+export function validate(config) {
+  const where = "subagent-custom config";
+  if (!["off", "once", "auto"].includes(config.mode)) {
+    throw new Error(`${where}: mode must be one of off, once, auto`);
+  }
+  if (!Array.isArray(config.triggers) || config.triggers.length === 0
+    || !config.triggers.every((t) => typeof t === "string" && t.startsWith("/"))) {
+    throw new Error(`${where}: triggers must be a non-empty array of "/command" strings`);
+  }
+  if (typeof config.provider !== "string" || !PROVIDER_PRESETS[config.provider]) {
+    throw new Error(`${where}: provider must be one of ${Object.keys(PROVIDER_PRESETS).join(", ")}`);
+  }
+  if (typeof config.endpoint !== "string" || !/^https?:\/\//.test(config.endpoint)) {
+    throw new Error(`${where}: endpoint must be an http(s) URL`);
+  }
+  if (typeof config.apiPath !== "string" || !config.apiPath.startsWith("/")) {
+    throw new Error(`${where}: apiPath must be a path starting with "/"`);
+  }
+  if (typeof config.apiKeyEnv !== "string" || config.apiKeyEnv.length === 0) {
+    throw new Error(`${where}: apiKeyEnv must name an environment variable`);
+  }
+  if (typeof config.model !== "string" || config.model.length === 0) {
+    throw new Error(`${where}: model must be a TypeSafe model id or alias`);
+  }
+  if (!Number.isFinite(config.timeoutMs) || config.timeoutMs < 50) {
+    throw new Error(`${where}: timeoutMs must be a number >= 50`);
+  }
+  if (!Number.isFinite(config.stateChars) || config.stateChars < 100) {
+    throw new Error(`${where}: stateChars must be a number >= 100`);
+  }
+  const questions = config.questions ?? {};
+  if (typeof questions !== "object" || Array.isArray(questions) || Object.keys(questions).length === 0) {
+    throw new Error(`${where}: questions must be a non-empty map of question id → question`);
+  }
+  for (const [id, question] of Object.entries(questions)) {
+    if (!ID_PATTERN.test(id)) throw new Error(`${where}: question id "${id}" must match [a-z][a-z0-9_]*`);
+    if (!QUESTION_TYPES.has(question?.type)) {
+      throw new Error(`${where}: question "${id}" has unknown type "${question?.type}"`);
+    }
+    if (typeof question.instructions !== "string" || question.instructions.length === 0) {
+      throw new Error(`${where}: question "${id}" needs instructions`);
+    }
+    if (question.type === "choice") {
+      const criteria = question.criteria;
+      if (typeof criteria !== "object" || criteria === null || Array.isArray(criteria)
+        || Object.keys(criteria).length < 2
+        || !Object.values(criteria).every(validCriteriaEntry)) {
+        throw new Error(`${where}: choice question "${id}" needs a criteria map with at least two named options`);
+      }
+    }
+    if (question.type === "score") {
+      const criteria = question.criteria;
+      if (!Array.isArray(criteria) || criteria.length < 2 || criteria.length > 10
+        || !criteria.every(validCriteriaEntry)) {
+        throw new Error(`${where}: score question "${id}" needs an ordered criteria array of 2..10 levels`);
+      }
+    }
+    if (question.type === "noul" && question.criteria !== undefined) {
+      const criteria = question.criteria;
+      if (typeof criteria !== "object" || criteria === null || Array.isArray(criteria)
+        || !validCriteriaEntry(criteria.true) || !validCriteriaEntry(criteria.false)) {
+        throw new Error(`${where}: noul question "${id}" criteria must be { true, false } when present`);
+      }
+    }
+  }
+  const profiles = config.profiles ?? {};
+  const active = config.activeProfile;
+  if (typeof active !== "string" || typeof profiles[active] !== "object" || profiles[active] === null) {
+    throw new Error(`${where}: activeProfile "${String(active)}" names no defined profile`);
+  }
+  for (const [name, profile] of Object.entries(profiles)) {
+    const min = profile?.confidenceMin;
+    if (!Number.isFinite(min) || min < 0 || min > 1) {
+      throw new Error(`${where}: profile "${name}" needs confidenceMin in [0, 1]`);
+    }
+    const del = profile?.delegate;
+    if (typeof del !== "object" || del === null) {
+      throw new Error(`${where}: profile "${name}" needs a delegate predicate object`);
+    }
+    for (const key of ["effortMax", "blastRadiusMax"]) {
+      if (del[key] !== undefined && (!Number.isFinite(del[key]) || del[key] < 0)) {
+        throw new Error(`${where}: profile "${name}" ${key} must be a number >= 0 (score positions may be fractional)`);
+      }
+    }
+    for (const [noulId, ceiling] of Object.entries(del.maxNoul ?? {})) {
+      if (!Number.isFinite(ceiling) || ceiling < 0 || ceiling > 1) {
+        throw new Error(`${where}: profile "${name}" maxNoul.${noulId} must be in [0, 1]`);
+      }
+    }
+    const probMax = del.probabilityMax ?? {};
+    if (typeof probMax !== "object" || Array.isArray(probMax)) {
+      throw new Error(`${where}: profile "${name}" probabilityMax must be an object keyed by question id`);
+    }
+    for (const [questionId, limits] of Object.entries(probMax)) {
+      const question = config.questions?.[questionId];
+      if (question?.type !== "score") {
+        throw new Error(`${where}: profile "${name}" probabilityMax.${questionId} names no configured score question`);
+      }
+      if (typeof limits !== "object" || limits === null || Object.keys(limits).length === 0) {
+        throw new Error(`${where}: profile "${name}" probabilityMax.${questionId} must map level names to probabilities`);
+      }
+      const names = criteriaLevelNames(question);
+      for (const [level, max] of Object.entries(limits)) {
+        if (!Number.isFinite(max) || max < 0 || max > 1) {
+          throw new Error(`${where}: profile "${name}" probabilityMax.${questionId}.${level} must be in [0, 1]`);
+        }
+        // Accept rubric names ("infra"), tail sums ("public_api+" = that
+        // level or worse), or numeric indices — nothing else.
+        const bare = level.endsWith("+") ? level.slice(0, -1) : level;
+        const index = /^\d+$/.test(bare) ? Number(bare) : names.indexOf(bare);
+        if (index === -1 || index >= names.length) {
+          throw new Error(`${where}: profile "${name}" probabilityMax.${questionId}.${level} is not in the rubric (${names.join("|")})`);
+        }
+      }
+    }
+  }
+  const tools = config.delegationTools ?? [];
+  if (!Array.isArray(tools) || tools.length === 0
+    || tools.some((tool) => typeof tool?.toolName !== "string" || tool.toolName.length === 0
+      || typeof tool?.provider !== "string" || tool.provider.length === 0)) {
+    throw new Error(`${where}: delegationTools must list { toolName, provider } pairs`);
+  }
+  for (const [role, route] of Object.entries(config.routes ?? {})) {
+    if (typeof route?.provider !== "string" || typeof route?.model !== "string"
+      || route.provider.length === 0 || route.model.length === 0) {
+      throw new Error(`${where}: routes.${role} needs non-empty provider and model`);
+    }
+  }
+  if (typeof config.defaultRoute !== "string" || !(config.defaultRoute in (config.routes ?? {}))) {
+    throw new Error(`${where}: defaultRoute "${String(config.defaultRoute)}" names no configured route`);
+  }
+  if (config.logDir !== null && config.logDir !== "" && typeof config.logDir !== "string") {
+    throw new Error(`${where}: logDir must be a directory path, or null/"" to disable logging`);
+  }
+  if (typeof config.logTurnText !== "boolean") throw new Error(`${where}: logTurnText must be a boolean`);
+  if (!Array.isArray(config.redactPatterns)) throw new Error(`${where}: redactPatterns must be an array of regex source strings`);
+  return config;
+}
+
+/**
+ * Merge the plugin row's `config` over the provider preset and the
+ * defaults, and validate. The preset for `provider` supplies endpoint,
+ * apiPath, apiKeyEnv, and model; explicit values in the row config win
+ * over the preset. `questions` and `routes` merge per key (override one
+ * entry, keep the rest); `profiles` deep-merges so a single threshold
+ * tweak keeps the predicate; everything else follows ordinary deep-merge
+ * rules.
+ * @param input - the cordis row config (may be undefined).
+ * @returns validated, fully-populated configuration.
+ */
+export function resolveConfig(input = {}) {
+  const base = defaults();
+  const provider = input?.provider ?? base.provider;
+  const preset = PROVIDER_PRESETS[provider];
+  if (!preset) {
+    throw new Error(`subagent-custom config: provider must be one of ${Object.keys(PROVIDER_PRESETS).join(", ")}`);
+  }
+  const presetApplied = { ...structuredClone(base), provider, ...preset };
+  const { questions, routes, ...rest } = input ?? {};
+  const merged = mergeDefaults(presetApplied, rest);
+  merged.questions = mergeMaps(presetApplied.questions, questions);
+  merged.routes = mergeMaps(presetApplied.routes, foldLegacyRoutes(routes));
+  return validate(merged);
+}
+
+/**
+ * The `mechanical` role was renamed to `junior` in 0.7.0: roles name the worker,
+ * and `mechanical` was the task class it serves leaking into a role name.
+ *
+ * The rename needs a migration rather than a changelog note, because the
+ * configuration card commits the *whole* routes map on any edit. An edit made
+ * before the upgrade therefore persists the old key next to the new default one,
+ * and the card would show four roles — one of them permanently unreachable, since
+ * `routeFor` sends the `mechanical` class to `junior`.
+ *
+ * Folding the old key into the new one on the *input* side, before defaults are
+ * merged in, keeps the priority right: an explicit `junior` from a profile wins
+ * over a stale `mechanical`, while a stale `mechanical` still carries whatever
+ * its owner last set instead of silently reverting to the shipped model.
+ */
+function foldLegacyRoutes(routes) {
+  if (routes === null || typeof routes !== "object" || !("mechanical" in routes)) return routes;
+  const { mechanical, ...rest } = routes;
+  return "junior" in rest ? rest : { ...rest, junior: mechanical };
+}
