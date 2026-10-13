@@ -150,6 +150,14 @@
   being edited, so it is npm's own badge now and reports whatever the registry
   serves. The quick-start text names the tarball as
   `dsh-subagent-custom-<版本号>.tgz` for the same reason.
+- **The development section says to install dependencies first.** Its command
+  block used to start at the tests, so a fresh clone that copied it hit
+  missing-module errors — no `node_modules`, and `tsc` resolves out of
+  `node_modules`. A `pnpm install` step leads the list now. Verified in a clone
+  taken from the public repository: with dependencies installed the suite is
+  **98 tests / 97 passed / 1 skipped / 0 failed**, and it stays that way even
+  with the built `lib/client.js` moved aside — these tests do not depend on the
+  build output.
 
 ### 2026-10-12
 

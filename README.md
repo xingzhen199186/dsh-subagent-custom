@@ -314,6 +314,9 @@ node bin/jev-replay.mjs ~/.dsh/logs/verdicts.ndjson candidate-policy.json
 仓库包含完整的工程校验与自动化测试套件：
 
 ```bash
+# 0. 安装依赖（首次克隆后必做——跳过这一步，下面的测试与类型检查会因为找不到 node_modules 而失败）
+pnpm install
+
 # 1. 运行自动化单元测试套件（98 项用例，覆盖判定、回放、改写与配置合并；其中 1 项依赖宿主 `dsh` 命令，Windows 上自动跳过）
 node --test "test/**/*.test.mjs"
 
