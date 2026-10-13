@@ -113,6 +113,11 @@
   actually show — the old ones promised a title-bar badge that neither picture
   contains — and a clipped edge of the picker shot was trimmed off. The logo
   remains the only placeholder.
+- **The settings-card screenshot was replaced with a fuller capture**, showing
+  the provider preset, the decision profile and all five roles with their models
+  and prompts. Its caption now names what the picture contains rather than the
+  questionnaire, which this crop does not reach. Checked before publishing: the
+  card's key field is not in the frame.
 
 ### 2026-10-12
 
