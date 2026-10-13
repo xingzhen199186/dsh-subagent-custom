@@ -28,9 +28,7 @@
   <a href="#-核心机制与判定流转">核心机制与判定流转</a> •
   <a href="#-离线策略回放-jev-replay">离线策略回放</a> •
   <a href="#-开发与测试">开发与测试</a> •
-  <a href="#-路线图-roadmap">路线图</a> •
   <a href="#-由来与致谢-provenance">由来与致谢</a> •
-  <a href="#-贡献指南-contributing">贡献指南</a> •
   <a href="#-开源协议-license">开源协议</a>
 </p>
 
@@ -293,24 +291,6 @@ node scripts/build-client.mjs
 
 ---
 
-## 🗺️ 路线图 (Roadmap)
-
-- [x] **v0.1.0 核心能力落地**
-  - [x] 接入 Jev 判定模型，支持 TypeSafe、B.ai、OpenRouter 供应商预设
-  - [x] 基于 `agent/request` 钩子实现子代理模型参数运行时硬性改写
-  - [x] 会话级三模切换（继承 / 自动 / 手动）与思考程度调节
-  - [x] 5 大角色与 8 种任务类别体系（含 `review`、`documentation`）
-  - [x] 启动时预设类别增量自动补入机制（`planAdoption` 与 `adoptedClasses`）
-  - [x] 凭据正则脱敏与静默放行（Fail-Open）防护
-  - [x] 离线策略评估回放工具（`jev-replay`）
-  - [x] 完整 Web GUI 注入与中、英、俄三语本地化
-- [ ] **近期后续规划**
-  - [ ] 针对不同子代理模型的 Token 与预估成本核算面板
-  - [ ] 子代理执行失败时的自动回退与高配模型重试机制
-  - [ ] 支持在 Web 端可视化配置中自定义新增判型问题维度
-
----
-
 ## 🧩 由来与致谢 (Provenance)
 
 本插件由两个早期项目合并而成，能力各承其一：
@@ -321,33 +301,6 @@ node scripts/build-client.mjs
 | [`dsh-jev-subagent-dispatch`](https://github.com/vitas/dsh-jev-subagent-dispatch)（v0.8.0） | 基于 Jev 判定模型的自动分流：任务判定、角色路由、子代理请求级模型改写 |
 
 两者均为 MIT 许可，版权分别归 **ringoage** 与 **Vitaliy Ryumshyn**，完整声明见 [LICENSE](LICENSE)。
-
-**合并遗留的旧名**：包名由 `dsh-jev-subagent-dispatch` 改为 `dsh-subagent-custom`，角色 `mechanical` 改名为 `junior`，插件来源标识由 `plugin:jev-subagent-dispatch` 改为 `plugin:subagent-custom`。因此少量注释里仍会读到旧名（例如 `cordis.patch.yml` 的文件头和 `src/shared/config.mjs` 的模块注释）——那是合并留下的痕迹，不是另一个仍在运行的插件。
-
----
-
-## 🤝 贡献指南 (Contributing)
-
-欢迎提交 Issue 或 Pull Request 共同改进项目！请遵循以下协作规范：
-
-1. **Fork 仓库**并基于主干分支创建特性分支：
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-2. **遵循编码准则**：
-   - 坚持纯函数与逻辑解耦原则，关键业务需附带单元测试；
-   - 若新增前端界面文案，必须在 `src/client/locales.ts` 中同步补齐 `zh`、`en`、`ru` 三语映射；
-   - 保持最小侵入性，不引入未商定的冗余依赖。
-3. **完成本地验证**：
-   在提交前运行所有检查确保通过：
-   ```bash
-   node --test "test/**/*.test.mjs"
-   node scripts/check.mjs
-   node scripts/check-locales.mjs
-   node node_modules/typescript/bin/tsc --noEmit
-   ```
-4. **提交 Pull Request**：
-   详细阐述改动背景、设计推演及验证结果。
 
 ---
 

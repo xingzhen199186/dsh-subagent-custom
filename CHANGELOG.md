@@ -102,6 +102,11 @@
   `.gitattributes` fixes line endings to LF so a clone on any platform matches.
   The first release carries the packed tarball, since a package that ships from
   a tarball is not installable from source without a build step.
+- **The README no longer carries a roadmap or a contributing section, and the
+  paragraph about the merge's leftover names is gone.** The two sections listed
+  plans and a contribution workflow the project does not run; the provenance
+  section keeps what it exists for — the two upstream projects and their MIT
+  notices.
 
 ### 2026-10-12
 
